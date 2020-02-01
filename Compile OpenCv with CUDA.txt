@@ -1,0 +1,50 @@
+1; need CMake in the environment variables
+
+2; Download CUDA;
+	help: https://devtalk.nvidia.com/default/topic/1035514/cuda-with-quot-geforce-gtx-1070-ti-quot-/
+	try to run sum sample .exe in the CUDA directory, make sure it works, if not reinstall
+
+3; Download cuDNN;
+	if you got that:
+		Copy <installpath>\cuda\bin\cudnn64_7.6.5.32.dll to C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\bin.
+		Copy <installpath>\cuda\ include\cudnn.h to C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\include.
+		Copy <installpath>\cuda\lib\x64\cudnn.lib to C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\lib\x64.
+
+4; git clone https://github.com/opencv/opencv_contrib.git
+
+5; git clone https://github.com/opencv/opencv.git
+	check/add enviornment variables SOURCE_PATH <opencv cloned repo path>
+
+6; create a new directory where it will build and step into it
+	run this in the cmd :
+		cmake .. -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D WITH_CUDA=ON -D CUDA_GENERATION=Pascal -D GPU_OPENCV_ENABLE=ON -D OPENCV_EXTRA_MODULES_PATH=D:/github/opencv_contrib/modules
+			these means:
+				cmake 							      ---> run cmake(you can use hardcoded path like c:/CMake/bin/cmake.exe)
+				..    							      ---> step back(you can change it to point to your opencvdir)
+				-D CUDA_GENERATION=Pascal 			   	      ---> check your cards architecture this works for 1070 Ti, it could be Kepler, Pascal or Maxwell
+				-D OPENCV_EXTRA_MODULES_PATH=D:/github/opencv_contrib/modules ---> point it to your cloned https://github.com/opencv/opencv_contrib.git directory
+	wait for it
+
+7; in your directory what you created prevoiusly run INSTALL.vcxproj in Visual Studio in REALEASE mode
+		it will try to build it, it might ask for some permissions and reruns accept all
+
+8; run test:
+	"%openCvBuild%\install\x64\vc16\bin\opencv_perf_cudaarithm.exe"  --gtest_filter=SzType_Flags_GEMM.GEMM/29
+	it should recognize your card and show some data on the console, if not try to compile with different architecture
+
+9; your CMakeLists.txt should look like:
+	 find_package(OpenCv REQUIRED)
+	 set(${OpenCV_INCLUDE_DIRS} "D:/dev/opencv/opencvbuild/")
+	 set(${OpenCV_LIBS} "D:/dev/opencv/opencvbuild/lib/")
+	 include_directories( ${OpenCV_INCLUDE_DIRS} )
+	 target_link_libraries( ${PROJECT_NAME} ${OpenCV_LIBS})
+
+10; and add Cuda to your CMakeLists.txt too you might need it:
+	 find_package(CUDA REQUIRED)
+	 IF(CUDA_FOUND)
+    	  	 SET(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-O3 -gencode arch=compute_61,code=sm_61)
+    		 add_definitions(-DGPU_OPENCV_ENABLE)
+	 ENDIF()
+		 might need to set arch=compute_61 and code=sm_61 to different architecture up to your card(you can find online)
+11; copy all the .dll file(should be in a bin directory, use search for it in the file explorer if can't find it) from the built opencv directory next to your .exe
+	if still missing some .dll probably should rerun from step 6, make sure you delete all the file's from prevoius build
